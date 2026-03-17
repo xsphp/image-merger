@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片拼接压缩工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #e9ecef;
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            border-color: #11998e;
+            background: #d4edda;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* 图片列表 */
+        .image-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: move;
+        }
+
+        .image-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-info {
+            padding: 10px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .image-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(235, 51, 73, 0.9);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+        .image-remove:hover {
+            background: #eb3349;
+            transform: scale(1.1);
+        }
+
+        .image-index {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 控制区域 */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .control-group input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .control-group select {
+            padding: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 1em;
+            background: white;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(235, 51, 73, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 预览区域 */
+        .preview-area {
+            text-align: center;
+        }
+
+        .preview-container {
+            max-height: 600px;
+            overflow: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .preview-container img {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .preview-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 5px;
+        }
+
+        .info-value.success {
+            color: #11998e;
+        }
+
+        .info-value.warning {
+            color: #f5576c;
+        }
+
+        /* 进度条 */
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        /* 提示框 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #333;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .toast.error { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+        .toast.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .toast.info { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 图片拼接压缩工具</h1>
+
+        <!-- 上传区域 -->
+        <div class="card">
+            <h2>📤 上传图片</h2>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">点击或拖拽上传图片</div>
+                <div class="upload-hint">支持 JPG、PNG、GIF、WebP 格式，可多选</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" multiple>
+
+            <!-- 图片列表 -->
+            <div class="image-list" id="imageList"></div>
+
+            <!-- 控制区域 -->
+            <div class="controls" id="controls" style="display: none;">
+                <div class="control-group">
+                    <label>目标大小:</label>
+                    <input type="number" id="targetSize" value="2" min="0.1" max="10" step="0.1">
+                    <span>MB</span>
+                </div>
+
+                <div class="control-group">
+                    <label>输出格式:</label>
+                    <select id="outputFormat">
+                        <option value="image/jpeg">JPEG</option>
+                        <option value="image/png">PNG</option>
+                        <option value="image/webp">WebP</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>图片间距:</label>
+                    <input type="number" id="imageGap" value="0" min="0" max="100" step="1">
+                    <span>px</span>
+                </div>
+
+                <div class="control-group">
+                    <label>背景颜色:</label>
+                    <input type="color" id="bgColor" value="#ffffff" style="width: 50px; height: 35px; border: none; cursor: pointer;">
+                </div>
+
+                <button class="btn btn-primary" onclick="mergeImages()">🔗 开始拼接</button>
+                <button class="btn btn-warning" onclick="clearAll()">🗑️ 清空全部</button>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;">0%</div>
+            </div>
+            <div class="progress-text" id="progressText">正在处理...</div>
+        </div>
+
+        <!-- 预览区域 -->
+        <div class="card preview-area" id="previewArea" style="display: none;">
+            <h2>👁️ 预览效果</h2>
+            
+            <div class="preview-container">
+                <img id="previewImage" alt="预览图">
+            </div>
+
+            <div class="preview-info">
+                <div class="info-item">
+                    <div class="info-label">原始大小</div>
+                    <div class="info-value" id="originalSize">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">压缩后大小</div>
+                    <div class="info-value success" id="compressedSize">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">压缩率</div>
+                    <div class="info-value" id="compressionRate">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">图片尺寸</div>
+                    <div class="info-value" id="imageDimensions">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">图片数量</div>
+                    <div class="info-value" id="imageCount">-</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadImage()">📥 下载图片</button>
+                <button class="btn btn-primary" onclick="mergeImages()">🔄 重新拼接</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局变量 ====================
+        let uploadedImages = []; // [{file, url, width, height, name, size}]
+        let mergedImageBlob = null;
+        let mergedImageUrl = null;
+
+        // ==================== 事件绑定 ====================
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+            fileInput.value = ''; // 允许重复选择同一文件
+        });
+
+        // ==================== 文件处理 ====================
+        function handleFiles(files) {
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            
+            if (imageFiles.length === 0) {
+                showToast('请选择图片文件', 'warning');
+                return;
+            }
+
+            imageFiles.forEach(file => {
+                loadImage(file);
+            });
+
+            showToast(`已添加 ${imageFiles.length} 张图片`, 'success');
+        }
+
+        function loadImage(file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    uploadedImages.push({
+                        file: file,
+                        url: e.target.result,
+                        width: img.width,
+                        height: img.height,
+                        name: file.name,
+                        size: file.size
+                    });
+                    
+                    renderImageList();
+                    document.getElementById('controls').style.display = 'flex';
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // ==================== 渲染图片列表 ====================
+        function renderImageList() {
+            const container = document.getElementById('imageList');
+            
+            if (uploadedImages.length === 0) {
+                container.innerHTML = '';
+                document.getElementById('controls').style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = uploadedImages.map((img, index) => `
+                <div class="image-item" data-index="${index}">
+                    <div class="image-index">${index + 1}</div>
+                    <img src="${img.url}" alt="${img.name}">
+                    <div class="image-info">
+                        <div style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${img.name}</div>
+                        <div>${formatSize(img.size)} • ${img.width}x${img.height}</div>
+                    </div>
+                    <button class="image-remove" onclick="removeImage(${index})">×</button>
+                </div>
+            `).join('');
+
+            // 启用拖拽排序
+            enableDragSort();
+        }
+
+        function removeImage(index) {
+            uploadedImages.splice(index, 1);
+            renderImageList();
+            
+            if (uploadedImages.length === 0) {
+                document.getElementById('controls').style.display = 'none';
+                document.getElementById('previewArea').style.display = 'none';
+            }
+        }
+
+        function clearAll() {
+            if (!confirm('确定要清空所有图片吗？')) return;
+            
+            uploadedImages = [];
+            renderImageList();
+            document.getElementById('previewArea').style.display = 'none';
+            mergedImageBlob = null;
+            if (mergedImageUrl) {
+                URL.revokeObjectURL(mergedImageUrl);
+                mergedImageUrl = null;
+            }
+            showToast('已清空所有图片', 'info');
+        }
+
+        // ==================== 拖拽排序 ====================
+        function enableDragSort() {
+            const items = document.querySelectorAll('.image-item');
+            
+            items.forEach(item => {
+                item.setAttribute('draggable', true);
+                
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', item.dataset.index);
+                    item.style.opacity = '0.5';
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.style.opacity = '1';
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    const toIndex = parseInt(item.dataset.index);
+                    
+                    if (fromIndex !== toIndex) {
+                        const temp = uploadedImages[fromIndex];
+                        uploadedImages.splice(fromIndex, 1);
+                        uploadedImages.splice(toIndex, 0, temp);
+                        renderImageList();
+                    }
+                });
+            });
+        }
+
+        // ==================== 图片拼接 ====================
+        async function mergeImages() {
+            if (uploadedImages.length === 0) {
+                showToast('请先上传图片', 'warning');
+                return;
+            }
+
+            showProgress(0, '正在加载图片...');
+            document.getElementById('progressContainer').style.display = 'block';
+
+            try {
+                // 计算总高度和最大宽度
+                const gap = parseInt(document.getElementById('imageGap').value) || 0;
+                const bgColor = document.getElementById('bgColor').value;
+                
+                let totalHeight = 0;
+                let maxWidth = 0;
+
+                uploadedImages.forEach((img, index) => {
+                    totalHeight += img.height;
+                    if (img.width > maxWidth) maxWidth = img.width;
+                });
+
+                // 添加间距
+                if (uploadedImages.length > 1) {
+                    totalHeight += gap * (uploadedImages.length - 1);
+                }
+
+                showProgress(20, '正在创建画布...');
+
+                // 创建 Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = maxWidth;
+                canvas.height = totalHeight;
+                
+                const ctx = canvas.getContext('2d');
+                
+                // 填充背景
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                showProgress(40, '正在拼接图片...');
+
+                // 绘制图片
+                let currentY = 0;
+                for (let i = 0; i < uploadedImages.length; i++) {
+                    const img = uploadedImages[i];
+                    const imgElement = new Image();
+                    
+                    await new Promise((resolve) => {
+                        imgElement.onload = resolve;
+                        imgElement.src = img.url;
+                    });
+
+                    // 居中绘制
+                    const x = (maxWidth - img.width) / 2;
+                    ctx.drawImage(imgElement, x, currentY);
+                    currentY += img.height + gap;
+                }
+
+                showProgress(70, '正在压缩图片...');
+
+                // 压缩并导出
+                const format = document.getElementById('outputFormat').value;
+                const targetSize = (parseFloat(document.getElementById('targetSize').value) || 2) * 1024 * 1024;
+                
+                const result = await compressImage(canvas, format, targetSize);
+                
+                mergedImageBlob = result.blob;
+                
+                if (mergedImageUrl) {
+                    URL.revokeObjectURL(mergedImageUrl);
+                }
+                mergedImageUrl = URL.createObjectURL(result.blob);
+
+                showProgress(100, '处理完成！');
+                setTimeout(() => {
+                    document.getElementById('progressContainer').style.display = 'none';
+                }, 1000);
+
+                // 显示预览
+                showPreview(result.blob, canvas.width, canvas.height);
+
+            } catch (error) {
+                console.error('处理失败:', error);
+                showToast('处理失败：' + error.message, 'error');
+                document.getElementById('progressContainer').style.display = 'none';
+            }
+        }
+
+        // ==================== 智能压缩 ====================
+        async function compressImage(canvas, format, targetSize) {
+            let quality = 0.95;
+            let blob = await canvasToBlob(canvas, format, quality);
+            let iterations = 0;
+            const maxIterations = 20;
+
+            // 如果超过目标大小，逐步降低质量
+            while (blob.size > targetSize && quality > 0.1 && iterations < maxIterations) {
+                quality -= 0.05;
+                quality = Math.max(0.1, quality);
+                blob = await canvasToBlob(canvas, format, quality);
+                iterations++;
+                
+                const percent = Math.round(70 + (iterations / maxIterations) * 30);
+                showProgress(percent, `正在压缩... 质量：${Math.round(quality * 100)}%`);
+            }
+
+            // 如果还是太大，尝试缩小尺寸
+            if (blob.size > targetSize) {
+                let scale = 0.9;
+                while (blob.size > targetSize && scale > 0.3 && iterations < maxIterations * 2) {
+                    const scaledCanvas = document.createElement('canvas');
+                    scaledCanvas.width = Math.floor(canvas.width * scale);
+                    scaledCanvas.height = Math.floor(canvas.height * scale);
+                    
+                    const ctx = scaledCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+                    
+                    blob = await canvasToBlob(scaledCanvas, format, 0.8);
+                    scale -= 0.1;
+                    iterations++;
+                    
+                    const percent = Math.round(70 + (iterations / (maxIterations * 2)) * 30);
+                    showProgress(percent, `正在缩放... 尺寸：${Math.round(scale * 100)}%`);
+                }
+                
+                return { blob, canvas: scaledCanvas };
+            }
+
+            return { blob, canvas };
+        }
+
+        function canvasToBlob(canvas, format, quality) {
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, format, quality);
+            });
+        }
+
+        // ==================== 显示预览 ====================
+        function showPreview(blob, width, height) {
+            const originalSize = uploadedImages.reduce((sum, img) => sum + img.size, 0);
+            const compressedSize = blob.size;
+            const compressionRate = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+
+            document.getElementById('previewImage').src = mergedImageUrl;
+            document.getElementById('originalSize').textContent = formatSize(originalSize);
+            document.getElementById('compressedSize').textContent = formatSize(compressedSize);
+            document.getElementById('compressionRate').textContent = compressionRate > 0 ? `-${compressionRate}%` : `+${Math.abs(compressionRate)}%`;
+            document.getElementById('imageDimensions').textContent = `${width} x ${height}`;
+            document.getElementById('imageCount').textContent = uploadedImages.length;
+
+            // 检查是否超过目标大小
+            const targetSize = (parseFloat(document.getElementById('targetSize').value) || 2) * 1024 * 1024;
+            const sizeElement = document.getElementById('compressedSize');
+            if (compressedSize > targetSize) {
+                sizeElement.classList.remove('success');
+                sizeElement.classList.add('warning');
+            } else {
+                sizeElement.classList.remove('warning');
+                sizeElement.classList.add('success');
+            }
+
+            document.getElementById('previewArea').style.display = 'block';
+            
+            // 滚动到预览区
+            document.getElementById('previewArea').scrollIntoView({ behavior: 'smooth' });
+            
+            showToast('拼接完成！', 'success');
+        }
+
+        // ==================== 下载图片 ====================
+        function downloadImage() {
+            if (!mergedImageBlob) {
+                showToast('请先生成图片', 'warning');
+                return;
+            }
+
+            const format = document.getElementById('outputFormat').value;
+            let extension = 'jpg';
+            if (format === 'image/png') extension = 'png';
+            if (format === 'image/webp') extension = 'webp';
+
+            const link = document.createElement('a');
+            link.href = mergedImageUrl;
+            link.download = `merged_${Date.now()}.${extension}`;
+            link.click();
+            
+            showToast('下载已开始', 'success');
+        }
+
+        // ==================== 工具函数 ====================
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressFill').textContent = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
